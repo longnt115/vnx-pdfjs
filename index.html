@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VNX PDF.js Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        #viewer {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 8px 16px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>VNX PDF.js Viewer</h1>
+    
+    <div class="controls">
+        <input type="file" id="fileInput" accept=".pdf">
+        <button id="prevPage">Previous</button>
+        <span id="pageInfo">Page: 0 / 0</span>
+        <button id="nextPage">Next</button>
+        <span>Scale: </span>
+        <input type="number" id="scaleInput" value="1.5" step="0.1" min="0.5" max="3">
+    </div>
+    
+    <div id="viewer">
+        <!-- PDF pages will be rendered here -->
+    </div>
+
+    <script src="dist/bundle.js"></script>
+    <script>
+        let pdfViewer = new VNX_PDFJS({
+            container: document.getElementById('viewer')
+        });
+        
+        let currentPage = 1;
+        let totalPages = 0;
+        
+        // File input handler
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const fileUrl = URL.createObjectURL(file);
+            try {
+                const pdfDoc = await pdfViewer.loadDocument(fileUrl);
+                totalPages = pdfDoc.numPages;
+                currentPage = 1;
+                updatePageInfo();
+                await renderCurrentPage();
+            } catch (error) {
+                console.error('Error loading PDF:', error);
+            }
+        });
+        
+        // Navigation handlers
+        document.getElementById('prevPage').addEventListener('click', async () => {
+            if (currentPage > 1) {
+                currentPage--;
+                await renderCurrentPage();
+                updatePageInfo();
+            }
+        });
+        
+        document.getElementById('nextPage').addEventListener('click', async () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                await renderCurrentPage();
+                updatePageInfo();
+            }
+        });
+        
+        // Scale handler
+        document.getElementById('scaleInput').addEventListener('change', (e) => {
+            pdfViewer.scale = parseFloat(e.target.value);
+            if (totalPages > 0) {
+                renderCurrentPage();
+            }
+        });
+        
+        async function renderCurrentPage() {
+            const viewer = document.getElementById('viewer');
+            viewer.innerHTML = ''; // Clear previous page
+            await pdfViewer.renderPage(currentPage, viewer);
+        }
+        
+        function updatePageInfo() {
+            document.getElementById('pageInfo').textContent = `Page: ${currentPage} / ${totalPages}`;
+        }
+    </script>
+</body>
+</html>
